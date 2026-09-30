@@ -1,0 +1,5 @@
+# 실행 중 생기는 로그
+logs/*.log
+
+# install.ps1 이 남기는 settings.json 백업
+*.bak-*

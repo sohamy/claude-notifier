@@ -1,0 +1,10 @@
+{
+  "enabled": true,
+  "sound": "default",
+  "minSeconds": 0,
+  "includePrompt": true,
+  "promptMaxLength": 70,
+  "includeProject": true,
+  "quietHoursStart": "",
+  "quietHoursEnd": ""
+}
