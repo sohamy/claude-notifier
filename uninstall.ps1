@@ -16,9 +16,26 @@ $settingsPath = if ($Scope -eq 'User') {
     Join-Path (Get-Location).Path '.claude\settings.json'
 }
 
+$root     = Split-Path -Parent $MyInvocation.MyCommand.Path
+$hookPath = Join-Path $root 'hook.ps1'
+
 if (-not (Test-Path -LiteralPath $settingsPath)) {
     Write-Host "설정 파일이 없습니다: $settingsPath" -ForegroundColor Yellow
     exit 0
+}
+
+function Test-OurHook {
+    param($Entry)
+
+    if (-not $Entry -or -not $Entry['command']) { return $false }
+    $cmd = [string]$Entry['command']
+
+    # 이 저장소의 hook.ps1 절대 경로로 판별한다 — clone 폴더 이름이
+    # claude-notifier 가 아니어도 제대로 찾는다
+    if ($cmd.IndexOf($hookPath, [StringComparison]::OrdinalIgnoreCase) -ge 0) { return $true }
+
+    # 폴더명으로 매칭하던 예전 설치분도 거둬간다
+    return ($cmd -like '*claude-notifier*hook.ps1*')
 }
 
 function ConvertTo-Hashtable {
@@ -48,9 +65,7 @@ $removed = 0
 if ($settings.Contains('hooks') -and $settings['hooks'].Contains('Stop')) {
     $kept = @()
     foreach ($group in @($settings['hooks']['Stop'])) {
-        $entries = @(@($group['hooks']) | Where-Object {
-            -not ($_ -and $_['command'] -and ([string]$_['command']) -like '*claude-notifier*hook.ps1*')
-        })
+        $entries = @(@($group['hooks']) | Where-Object { -not (Test-OurHook $_) })
         $removed += (@($group['hooks']).Count - $entries.Count)
         if ($entries.Count -gt 0) {
             $group['hooks'] = $entries

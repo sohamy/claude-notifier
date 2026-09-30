@@ -1,92 +1,168 @@
 # claude-notifier
 
-Claude Code 가 작업을 끝내면 **윈도우 토스트 알림 + 소리**로 알려줍니다.
-다른 창에서 딴짓하다가도 "끝났나?" 하고 터미널을 들여다볼 필요가 없어집니다.
+Desktop notifications when Claude Code finishes working.
+
+*[한국어 README](README.ko.md)*
+
+Claude Code runs in a terminal, so long tasks leave you either staring at it or
+forgetting about it. This puts a Windows toast on screen the moment Claude stops,
+with enough context to know what finished without switching windows.
 
 ```
-┌──────────────────────────────────────────┐
-│ ✅ my-project — 작업 완료                │
-│ 테스트 코드 깨진 것 좀 고쳐줘            │
-│ 소요 2분 14초 · D:\work\my-project       │
-└──────────────────────────────────────────┘
++------------------------------------------+
+|  my-project - done                       |
+|  fix the broken tests                    |
+|  took 2m 14s - D:\work\my-project        |
++------------------------------------------+
 ```
 
-마지막으로 뭘 시켰는지, 얼마나 걸렸는지, 어느 프로젝트인지가 알림에 함께 나옵니다.
+The last thing you asked for, how long it took, and which project it was.
 
-## 설치
+## Requirements
+
+- Windows 10 or 11
+- Windows PowerShell 5.1 (`powershell.exe`) — ships with Windows, nothing to install
+- Claude Code
+
+PowerShell 7 (`pwsh`) is fine to have, but the notifier itself runs on 5.1. See
+[Notes](#notes) for why.
+
+## Install
+
+Clone anywhere you like, then run the installer from the repo folder:
 
 ```powershell
-# 모든 프로젝트에 적용 (권장)
-powershell -NoProfile -ExecutionPolicy Bypass -File D:\claude-notifier\install.ps1
+git clone https://github.com/sohamy/claude-notifier.git
+cd claude-notifier
 
-# 이 프로젝트에서만
-powershell -NoProfile -ExecutionPolicy Bypass -File D:\claude-notifier\install.ps1 -Scope Project
+# every project (recommended)
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
+
+# this project only
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Scope Project
 ```
 
-`settings.json` 의 `hooks.Stop` 에 훅 한 줄을 추가합니다. 기존 설정은 건드리지 않고,
-수정 전 `settings.json.bak-<날짜>` 로 백업합니다.
+The installer adds one `Stop` hook to your Claude Code `settings.json`, pointing
+at wherever you cloned it. Existing hooks and settings are left alone, and the
+file is backed up to `settings.json.bak-<timestamp>` first.
 
-실행 중인 Claude Code 세션이 있으면 `/hooks` 로 등록 상태를 확인하거나 세션을 재시작하세요.
+`-Scope User` writes to `%USERPROFILE%\.claude\settings.json`; `-Scope Project`
+writes to `.claude\settings.json` in the current folder.
 
-## 알림이 안 보이면
+Running it again is safe — it refreshes the path instead of adding a duplicate.
 
-알림 센터(`Win`+`N`)를 먼저 확인하세요. 거기에도 없으면 **설정 → 시스템 → 알림** 에서
-알림이 꺼져 있거나 집중 모드가 켜져 있는 경우입니다.
+## Usage
 
-그다음은 `logs\notifier.log` 입니다. 훅이 돌았다면 여기에 기록이 남고, 알림을 건너뛴
-경우에는 그 이유(짧은 턴, 방해 금지 시간대 등)가 적힙니다. 로그가 아예 비어 있으면
-훅이 호출되지 않은 것이니 `/hooks` 로 등록 상태를 확인하세요.
+**There is nothing to run.** Use Claude Code as you normally would and a
+notification appears each time it finishes responding.
 
-## 제거
+If you installed mid-session, restart Claude Code once so it picks up the hook.
+You can check it registered with `/hooks`.
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File D:\claude-notifier\uninstall.ps1
+Everything below is optional tuning. Edit `config.json`, save, and the next
+notification uses it — no restart.
+
+### Stop notifying on short turns
+
+The one setting most people want. Quick back-and-forth gets noisy fast:
+
+```json
+"minSeconds": 30
 ```
 
-claude-notifier 훅만 골라 지우고 다른 훅은 그대로 둡니다.
+Only turns that took longer than 30 seconds notify.
 
-## 설정 — `config.json`
+### Silence the sound, keep the banner
 
-| 항목 | 기본값 | 설명 |
+```json
+"sound": "none"
+```
+
+### Use your own sound
+
+```json
+"sound": "C:\Windows\Media\Alarm03.wav"
+```
+
+Backslashes are doubled because it's JSON. `C:\Windows\Media\` has plenty to
+pick from. Avoid the `ms-winsoundevent:Notification.Looping.*` sounds — they're
+built for alarms and are far too aggressive for a completion ping.
+
+### Don't notify at night
+
+```json
+"quietHoursStart": "23:00",
+"quietHoursEnd": "08:00"
+```
+
+Ranges that cross midnight work as written.
+
+### Turn it off for a while
+
+```json
+"enabled": false
+```
+
+Leaves the hook in place and just stops notifying, so you don't have to
+reinstall later.
+
+### When nothing shows up
+
+Check the Action Center first (`Win`+`N`). If it's empty there too, notifications
+are probably off or Focus Assist is on — **Settings → System → Notifications**.
+
+Then read `logs\notifier.log`. Every fired notification is logged, and every
+skipped one is logged with the reason (too short, quiet hours, disabled). An
+empty log means the hook never ran, so check `/hooks`.
+
+## Configuration
+
+| Key | Default | What it does |
 |---|---|---|
-| `enabled` | `true` | `false` 로 두면 훅은 남겨둔 채 알림만 끕니다 |
-| `sound` | `"default"` | `"none"` 이면 무음, `.wav` 경로를 주면 그 파일을 재생 |
-| `minSeconds` | `0` | 이 초보다 짧게 끝난 턴은 알림 생략 (예: `30` → 짧은 대화는 조용히) |
-| `includePrompt` | `true` | 마지막 지시 내용을 알림 본문에 표시 |
-| `promptMaxLength` | `70` | 지시 내용 표시 길이 (넘으면 `…`) |
-| `includeProject` | `true` | 제목에 프로젝트 폴더명 표시 |
-| `quietHoursStart` | `""` | 방해 금지 시작 (예: `"23:00"`). 비우면 사용 안 함 |
-| `quietHoursEnd` | `""` | 방해 금지 종료 (예: `"08:00"`). 자정을 넘겨도 됩니다 |
+| `enabled` | `true` | `false` keeps the hook but stops notifying |
+| `sound` | `"default"` | `"none"` for silence, or a path to a `.wav` |
+| `minSeconds` | `0` | Skip turns shorter than this many seconds |
+| `includePrompt` | `true` | Show what you last asked for in the body |
+| `promptMaxLength` | `70` | Truncate that text with `…` past this length |
+| `includeProject` | `true` | Put the project folder name in the title |
+| `quietHoursStart` | `""` | e.g. `"23:00"`. Empty disables quiet hours |
+| `quietHoursEnd` | `""` | e.g. `"08:00"`. May cross midnight |
 
-고친 내용은 다음 알림부터 바로 반영됩니다. 재시작 필요 없습니다.
+## Uninstall
 
-## 파일 구성
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\uninstall.ps1
+```
 
-| 파일 | 역할 |
+Removes only this tool's hook and leaves any other hooks untouched. Pass
+`-Scope Project` if that's where you installed it.
+
+## Files
+
+| File | Role |
 |---|---|
-| `hook.ps1` | Stop 훅 본체. stdin JSON 을 읽어 문구를 만들고 `notify.ps1` 을 띄웁니다 |
-| `notify.ps1` | 실제 토스트 표시 + 소리 재생 |
-| `install.ps1` / `uninstall.ps1` | `settings.json` 훅 등록 / 해제 |
-| `config.json` | 설정 |
-| `logs/notifier.log` | 알림 발생 및 생략 기록. 문제 생기면 여기부터 |
+| `hook.ps1` | The `Stop` hook. Builds the message and launches `notify.ps1` |
+| `notify.ps1` | Shows the toast and plays the sound |
+| `install.ps1` / `uninstall.ps1` | Register / remove the hook in `settings.json` |
+| `config.json` | Settings |
+| `logs/notifier.log` | Fired and skipped notifications. Start here when debugging |
 
-## 동작 방식
+## How it works
 
-1. Claude Code 가 응답을 마치면 `Stop` 훅이 `hook.ps1` 을 호출하고
-   `cwd`, `transcript_path` 등이 담긴 JSON 을 stdin 으로 넘깁니다.
-2. `hook.ps1` 이 transcript(`.jsonl`) 뒤쪽을 훑어 **마지막 사용자 지시**와 그 시각을 찾고,
-   현재 시각과의 차이로 소요 시간을 계산합니다.
-3. `notify.ps1` 을 **별도 프로세스로** 띄우고 즉시 종료합니다 — Claude Code 를 붙잡지 않습니다.
-4. 알림 표시에 실패해도 훅은 항상 `exit 0` 이라 작업 흐름이 깨지지 않습니다.
+1. When Claude Code finishes responding, its `Stop` hook runs `hook.ps1` and
+   passes JSON on stdin containing `cwd`, `transcript_path` and more.
+2. `hook.ps1` scans the tail of the transcript (`.jsonl`) for the **last user
+   prompt** and its timestamp, and diffs that against now for the duration.
+3. It launches `notify.ps1` as a **separate process** and returns immediately,
+   so Claude Code is never blocked waiting on a toast.
+4. The hook always exits `0`. A failed notification never breaks your workflow.
 
-## 알아둘 점
+## Notes
 
-- **Windows PowerShell 5.1(`powershell.exe`) 로 실행해야 합니다.** 토스트에 쓰는 WinRT API 가
-  PowerShell 7(`pwsh`)에서는 바로 잡히지 않습니다. 설치 스크립트가 `powershell` 로 등록하니
-  훅 명령을 직접 손대지만 않으면 됩니다.
-- WinRT 토스트가 안 되는 환경에서는 자동으로 풍선 알림(`NotifyIcon`)으로 넘어갑니다.
-- `.ps1` 파일은 **UTF-8 BOM** 으로 저장돼 있습니다. BOM 을 빼면 PowerShell 5.1 이 한글을
-  ANSI 로 읽어 구문 오류가 납니다. 편집기에서 인코딩을 바꾸지 마세요.
-- 기본 알림음은 윈도우 표준 `Notification.Default` 입니다. 바꾸려면 `config.json` 의
-  `sound` 에 `.wav` 경로를 넣으세요. `C:\Windows\Media\` 에 쓸 만한 것들이 있습니다.
-  `ms-winsoundevent:Notification.Looping.*` 계열은 알람용이라 완료 알림에는 쓰지 마세요.
+- **Runs on Windows PowerShell 5.1, not PowerShell 7.** The WinRT toast APIs
+  aren't directly loadable in `pwsh`. The installer registers `powershell`
+  for you, so this only matters if you hand-edit the hook command.
+- Where WinRT toasts are unavailable, it falls back to a `NotifyIcon` balloon.
+- **The `.ps1` files are saved as UTF-8 with BOM.** Strip the BOM and PowerShell
+  5.1 reads non-ASCII text as ANSI and fails to parse. Don't let your editor
+  re-encode them.
