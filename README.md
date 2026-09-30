@@ -2,7 +2,7 @@
 
 Desktop notifications when Claude Code finishes working.
 
-*[한국어 README](README.ko.md)*
+*[한국어 README](README.ko.md) · [Quickstart](QUICKSTART.md)*
 
 Claude Code runs in a terminal, so long tasks leave you either staring at it or
 forgetting about it. This puts a Windows toast on screen the moment Claude stops.

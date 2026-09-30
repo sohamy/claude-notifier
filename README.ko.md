@@ -2,7 +2,7 @@
 
 Claude Code 가 작업을 끝내면 데스크톱 알림으로 알려줍니다.
 
-*[English README](README.md)*
+*[English README](README.md) · [빠른 시작](QUICKSTART.ko.md)*
 
 Claude Code 는 터미널에서 돌기 때문에 오래 걸리는 작업은 계속 쳐다보거나 아예
 잊어버리게 됩니다. 이 도구는 Claude 가 응답을 마치는 순간 윈도우 토스트를 띄웁니다.
