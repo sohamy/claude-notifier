@@ -3,3 +3,4 @@ logs/*.log
 
 # install.ps1 이 남기는 settings.json 백업
 *.bak-*
+logs/*.json

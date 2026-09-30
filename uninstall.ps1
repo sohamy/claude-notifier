@@ -82,6 +82,13 @@ if ($settings.Contains('hooks') -and $settings['hooks'].Contains('Stop')) {
 $json = $settings | ConvertTo-Json -Depth 20
 [System.IO.File]::WriteAllText($settingsPath, $json, (New-Object System.Text.UTF8Encoding $false))
 
+# ── claude-notifier: 프로토콜 등록 해제 ────────────────────────────────
+$protoRoot = 'HKCU:\Software\Classes\claude-notifier'
+if (Test-Path -LiteralPath $protoRoot) {
+    Remove-Item -LiteralPath $protoRoot -Recurse -Force
+    Write-Host '클릭 핸들러(claude-notifier: 프로토콜) 등록을 해제했습니다.' -ForegroundColor DarkGray
+}
+
 if ($removed -gt 0) {
     Write-Host "제거 완료 — claude-notifier 훅 $removed 개를 삭제했습니다." -ForegroundColor Green
 } else {

@@ -18,9 +18,10 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-$root     = Split-Path -Parent $MyInvocation.MyCommand.Path
-$hookPath = Join-Path $root 'hook.ps1'
-$command  = 'powershell -NoProfile -ExecutionPolicy Bypass -File "{0}"' -f $hookPath
+$root      = Split-Path -Parent $MyInvocation.MyCommand.Path
+$hookPath  = Join-Path $root 'hook.ps1'
+$focusPath = Join-Path $root 'focus.ps1'
+$command   = 'powershell -NoProfile -ExecutionPolicy Bypass -File "{0}"' -f $hookPath
 
 $settingsPath = if ($Scope -eq 'User') {
     Join-Path $env:USERPROFILE '.claude\settings.json'
@@ -125,9 +126,22 @@ $hooks['Stop'] = @($stopGroups)
 $json = $settings | ConvertTo-Json -Depth 20
 [System.IO.File]::WriteAllText($settingsPath, $json, (New-Object System.Text.UTF8Encoding $false))
 
+# ── claude-notifier: 프로토콜 등록 (알림 클릭 -> 터미널 창 포커스) ──────
+# 토스트 클릭은 URI 를 열 수만 있어서, 창을 띄워줄 핸들러를 HKCU 에 등록한다.
+# 사용자 범위라 관리자 권한이 필요 없고 uninstall.ps1 이 지운다.
+$protoRoot = 'HKCU:\Software\Classes\claude-notifier'
+$protoCmd  = '"{0}" -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "{1}" "%1"' -f
+             (Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\powershell.exe'), $focusPath
+
+New-Item -Path "$protoRoot\shell\open\command" -Force | Out-Null
+Set-ItemProperty -Path $protoRoot -Name '(Default)'   -Value 'URL:claude-notifier'
+Set-ItemProperty -Path $protoRoot -Name 'URL Protocol' -Value ''
+Set-ItemProperty -Path "$protoRoot\shell\open\command" -Name '(Default)' -Value $protoCmd
+
 Write-Host ''
 Write-Host "설치 완료 ($Scope 범위)" -ForegroundColor Green
 Write-Host "  설정 파일 : $settingsPath"
 Write-Host "  훅 명령   : $command"
+Write-Host "  클릭 핸들러: $protoRoot"
 Write-Host ''
 Write-Host '실행 중인 Claude Code 세션이 있으면 /hooks 로 등록 상태를 확인하거나 재시작하세요.' -ForegroundColor Cyan

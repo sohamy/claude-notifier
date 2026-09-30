@@ -6,5 +6,8 @@
   "promptMaxLength": 70,
   "includeProject": true,
   "quietHoursStart": "",
-  "quietHoursEnd": ""
+  "quietHoursEnd": "",
+  "notifyOnInterrupt": false,
+  "persistUntilClicked": true,
+  "focusOnClick": true
 }
