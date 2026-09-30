@@ -28,14 +28,14 @@ powershell -NoProfile -ExecutionPolicy Bypass -File D:\claude-notifier\install.p
 
 실행 중인 Claude Code 세션이 있으면 `/hooks` 로 등록 상태를 확인하거나 세션을 재시작하세요.
 
-## 먼저 시험해보기
+## 알림이 안 보이면
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File D:\claude-notifier\test.ps1 -IncludeHook
-```
+알림 센터(`Win`+`N`)를 먼저 확인하세요. 거기에도 없으면 **설정 → 시스템 → 알림** 에서
+알림이 꺼져 있거나 집중 모드가 켜져 있는 경우입니다.
 
-알림이 안 보이면 알림 센터(`Win`+`N`)를 확인하세요. 아무것도 없으면
-**설정 → 시스템 → 알림** 에서 알림이 꺼져 있거나 집중 모드가 켜져 있는지 보세요.
+그다음은 `logs\notifier.log` 입니다. 훅이 돌았다면 여기에 기록이 남고, 알림을 건너뛴
+경우에는 그 이유(짧은 턴, 방해 금지 시간대 등)가 적힙니다. 로그가 아예 비어 있으면
+훅이 호출되지 않은 것이니 `/hooks` 로 등록 상태를 확인하세요.
 
 ## 제거
 
@@ -67,7 +67,6 @@ claude-notifier 훅만 골라 지우고 다른 훅은 그대로 둡니다.
 | `hook.ps1` | Stop 훅 본체. stdin JSON 을 읽어 문구를 만들고 `notify.ps1` 을 띄웁니다 |
 | `notify.ps1` | 실제 토스트 표시 + 소리 재생 |
 | `install.ps1` / `uninstall.ps1` | `settings.json` 훅 등록 / 해제 |
-| `test.ps1` | 알림 동작 확인 |
 | `config.json` | 설정 |
 | `logs/notifier.log` | 알림 발생 및 생략 기록. 문제 생기면 여기부터 |
 
@@ -88,5 +87,6 @@ claude-notifier 훅만 골라 지우고 다른 훅은 그대로 둡니다.
 - WinRT 토스트가 안 되는 환경에서는 자동으로 풍선 알림(`NotifyIcon`)으로 넘어갑니다.
 - `.ps1` 파일은 **UTF-8 BOM** 으로 저장돼 있습니다. BOM 을 빼면 PowerShell 5.1 이 한글을
   ANSI 로 읽어 구문 오류가 납니다. 편집기에서 인코딩을 바꾸지 마세요.
-- 소리를 바꾸려면 `config.json` 의 `sound` 에 `.wav` 경로를 넣으세요.
-  `C:\Windows\Media\` 에 쓸 만한 것들이 있습니다 (`Alarm03.wav`, `notify.wav` 등).
+- 기본 알림음은 윈도우 표준 `Notification.Default` 입니다. 바꾸려면 `config.json` 의
+  `sound` 에 `.wav` 경로를 넣으세요. `C:\Windows\Media\` 에 쓸 만한 것들이 있습니다.
+  `ms-winsoundevent:Notification.Looping.*` 계열은 알람용이라 완료 알림에는 쓰지 마세요.

@@ -50,7 +50,7 @@ function Show-WinRtToast {
     }
 
     $audio = if ($Silent) { '<audio silent="true"/>' }
-             else { '<audio src="ms-winsoundevent:Notification.Looping.Alarm2" loop="false"/>' }
+             else { '<audio src="ms-winsoundevent:Notification.Default"/>' }
 
     $xml = '<toast duration="short"><visual><binding template="ToastGeneric">' +
            $lines.ToString() +
